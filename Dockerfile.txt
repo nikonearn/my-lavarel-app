@@ -1,6 +1,6 @@
 FROM php:8.3-fpm
 
-RUN apt-get update && apt-get install -y nginx curl unzip git \
+RUN apt-get update && apt-get install -y nginx \
     && docker-php-ext-install pdo_mysql mbstring
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -8,12 +8,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Simple Nginx config
-RUN echo 'server { listen 80; root /var/www/html/public; index index.php; location / { try_files $uri $uri/ /index.php?$query_string; } location ~ \.php$ { fastcgi_pass unix:/var/run/php/php8.3-fpm.sock; fastcgi_index index.php; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; } }' > /etc/nginx/sites-available/default
+# Basic Nginx
+RUN echo 'server { listen 80 default_server; root /var/www/html/public; index index.php; location / { try_files $uri $uri/ /index.php?$query_string; } location ~ \.php$ { fastcgi_pass unix:/var/run/php/php8.3-fpm.sock; fastcgi_index index.php; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; } }' > /etc/nginx/sites-available/default
 
 EXPOSE 80
 CMD service nginx start && php-fpm
